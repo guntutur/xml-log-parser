@@ -41,13 +41,8 @@ public class App {
         String forwarded = "Forwarded";
         String stored = "Stored";
         String error = "error";
-        String specificOsmString = "WLJMSMessage";
 
         List<String> dir = new ArrayList<>();
-//        dir.add("110319");
-//        dir.add("120319");
-//        dir.add("140319");
-//        dir.add("150319");
         dir.add("osm");
 
         for (String s : dir) {
@@ -65,17 +60,14 @@ public class App {
                     int storedOccurrences = 0;
                     while (in.hasNextLine()) {
                         String line = in.nextLine();
-//                        if (line.toLowerCase().contains(error)) {
                         if (!line.startsWith("###")) {
-//                            System.out.println(prettyPrintXML(sanitizeXml(line), s, path.toFile()));
+                            System.out.println(prettyPrintXML(sanitizeXml(line), s, path.toFile()));
                             out.write(prettyPrintXML(sanitizeXml(line), s, path.toFile())+"\n");
                             forwardOccurrences++;
                         }
-//                        if (line.contains(forwarded)) forwardOccurrences++;
-//                        if (line.contains(stored)) storedOccurrences++;
                     }
 
-                    System.out.println(path.getFileName() + "," + forwardOccurrences + "," + storedOccurrences);
+//                    System.out.println(path.getFileName() + "," + forwardOccurrences + "," + storedOccurrences);
 
                     in.close();
                 } catch (FileNotFoundException e) {
@@ -83,7 +75,7 @@ public class App {
                 }
             }
 
-            System.out.println("MS Log dir "+s+" finished processed");
+//            System.out.println("MS Log dir "+s+" finished processed");
         }
     }
 
