@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+java -cp $DIR/../target/logparser-1.0-SNAPSHOT.jar com.ssi.uim.logparser.main.App $1 $2 $3
