@@ -1,23 +1,11 @@
 package com.ssi.uim.logparser.main;
 
-import com.ssi.uim.logparser.service.ProcessParkingLotCommand;
-import com.ssi.uim.logparser.util.ParkingLotUtility;
+import com.ssi.uim.logparser.service.SearchNeedleInTheHaystack;
+import com.ssi.uim.logparser.util.AppUtility;
 
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Stream;
+//import java.util.stream.Stream;
 
 /**
  * Created by zer0, the Maverick Hunter
@@ -26,99 +14,26 @@ import java.util.stream.Stream;
  */
 public class App {
 
-    private ParkingLotUtility utility = new ParkingLotUtility();
-    private ProcessParkingLotCommand parkingLotCommand = new ProcessParkingLotCommand();
+    private AppUtility utility = new AppUtility();
+    private SearchNeedleInTheHaystack parkingLotCommand = new SearchNeedleInTheHaystack();
+    private static final String MS_LOG_NAME_PREFIX = "OSM_MS";
+    private static final String JMS_LOG_NAME_PREFIX = "jms.ms";
 
-    public static void main(String[] args) throws IOException {
-
+    public static void main(String[] args) throws IOException, InterruptedException {
         App app = new App();
-
-        app.processFileInput();
+        app.interactiveShell();
     }
 
-    private void processFileInput() throws IOException {
-
-        String forwarded = "Forwarded";
-        String stored = "Stored";
-        String error = "error";
-
-        List<String> dir = new ArrayList<>();
-        dir.add("osm");
-
-        for (String s : dir) {
-
-            Stream<Path> paths = Files.walk(Paths.get("src/main/resources/" + s));
-            FileWriter out = new FileWriter("src/main/resources/error_log_general_" + s + ".txt", true);
-
-            for (Path path : (Iterable<Path>) () -> paths.filter(Files::isRegularFile).iterator()) {
-                Scanner in;
-                try {
-
-                    in = new Scanner(new InputStreamReader(new FileInputStream(path.toFile()), StandardCharsets.UTF_8));
-
-                    int forwardOccurrences = 0;
-                    int storedOccurrences = 0;
-                    while (in.hasNextLine()) {
-                        String line = in.nextLine();
-                        if (!line.startsWith("###")) {
-                            System.out.println(prettyPrintXML(sanitizeXml(line), s, path.toFile()));
-                            out.write(prettyPrintXML(sanitizeXml(line), s, path.toFile())+"\n");
-                            forwardOccurrences++;
-                        }
-                    }
-
-//                    System.out.println(path.getFileName() + "," + forwardOccurrences + "," + storedOccurrences);
-
-                    in.close();
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-            }
-
-//            System.out.println("MS Log dir "+s+" finished processed");
-        }
-    }
-
-    private static String sanitizeXml(String input) {
-
-        return input
-                .replace("(?<=>)(\\s+)(?=<)", "")
-                .replace("####", "")
-                .replace("> <>", "")
-                .replace("&gt;", ">")
-                .replace("&lt;", "<")
-                .replace("&quot;", "\"").trim();
-    }
-
-    public static String prettyPrintXML(String input, String dir, File file) {
-        int indent = 2;
-        try {
-            Source xmlInput = new StreamSource(new StringReader(input));
-            StringWriter stringWriter = new StringWriter();
-            StreamResult xmlOutput = new StreamResult(stringWriter);
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            transformerFactory.setAttribute("indent-number", indent);
-            Transformer transformer = transformerFactory.newTransformer();
-            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.transform(xmlInput, xmlOutput);
-            return xmlOutput.getWriter().toString();
-        } catch (Exception e) {
-            System.out.println(dir);
-            System.out.println(file);
-            System.out.println(input);
-            throw new RuntimeException(e); // simple exception handling, please review it
-        }
-    }
-
-    private void interactiveShell() {
-        // System.out.println("Please enter command : (enter help to see available command with usage)");
+    private void interactiveShell() throws IOException, InterruptedException {
+        System.out.println("Welcome to OSM Log Parser : (type exit to keluar, help to show example)");
+        System.out.println("Type in absolute_file_path(full path) string_pattern(ncx-id) kind_of_search(MS/JMS) :");
 
         String theInput;
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
 
+            System.out.print("[input]> ");
             theInput = scanner.nextLine();
 
             switch (theInput) {
@@ -129,17 +44,172 @@ public class App {
                     utility.exitProgram();
                     break;
                 default:
-                    System.out.println(processCommand(theInput));
+                    processCommand(theInput);
             }
         }
     }
 
-    public String processCommand(String command) {
-        String response = "";
+    public void processCommand(String command) throws IOException, InterruptedException {
         if (utility.validateCommand(command)) {
-            response = parkingLotCommand.processCommand(command);
+            String[] fullCommand = command.split(" ");
+            String fileLookUpPattern = fullCommand[2].equals("MS") ? MS_LOG_NAME_PREFIX : JMS_LOG_NAME_PREFIX;
+            parkingLotCommand.processCommand(fullCommand[0], fullCommand[1], fileLookUpPattern);
+            System.out.println(" Files Processed, Operation is now completed, list this dir and check the generated file, bye!");
+            utility.exitProgram();
         }
-
-        return response;
     }
+
+
+//    private void processSingleFileInput(String filePath, String pattern) throws IOException {
+//
+//        File path = new File(filePath);
+//        FileWriter out = new FileWriter("xml_pattern_" + pattern + ".txt", true);
+//
+//        Scanner in;
+//        try {
+//
+//            in = new Scanner(new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8));
+//            String previousLine = null;
+//            while (in.hasNextLine()) {
+//                String line = in.nextLine();
+//                if (!line.startsWith("###")) {
+//                    if (line.contains(pattern)) {
+//                        System.out.println("found pattern, writing..");
+//                        assert previousLine != null;
+//                        out.write(sanitizeXml(previousLine) + "\n");
+//                        out.write(prettyPrintXML(sanitizeXml(line), "forcedArgs", path)+"\n");
+//                    }
+//                }
+//                previousLine = line;
+//            }
+//
+//            in.close();
+//            out.close();
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//    }
+
+//    private void processBulkFileInputJava7(String filePath, String pattern, String prefix) throws IOException {
+//
+//        List<String> dir = new ArrayList<>();
+//        dir.add(filePath);
+//
+//        for (String s : dir) {
+//            System.out.println("ENTERING DIRECTORY : " + s);
+//            File paths = new File(filePath);
+//            FileWriter out = new FileWriter("xml_pattern_" + pattern + ".txt", true);
+//
+//            for (File file : Objects.requireNonNull(paths.listFiles())) {
+//                if (file.getName().startsWith(prefix)) {
+//                    System.out.println("CHECKING FILE : " + file.getName());
+//                    Scanner in;
+//                    try {
+//
+//                        in = new Scanner(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
+//                        String previousLine = null;
+//                        while (in.hasNextLine()) {
+//                            String line = in.nextLine();
+//                            if (!line.startsWith("###")) {
+//                                if (line.contains(pattern)) {
+//                                    System.out.println("found pattern on "+file.getName()+", writing..");
+//                                    assert previousLine != null;
+//                                    out.write(sanitizeXml(previousLine) + "\n");
+//                                    out.write(prettyPrintXML(sanitizeXml(line), "forcedArgs", file)+"\n");
+//                                }
+//                            }
+//                            previousLine = line;
+//                        }
+//
+//                        in.close();
+//                    } catch (FileNotFoundException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//            }
+//            out.close();
+//        }
+//    }
+
+//    private void processBulkFileInput(String filePath, String pattern) throws IOException {
+//
+//        List<String> dir = new ArrayList<>();
+//        dir.add(filePath);
+//
+//        for (String s : dir) {
+//            System.out.println("ENTERING DIRECTORY : " + s);
+//            Stream<Path> paths = Files.walk(Paths.get(filePath));
+//            FileWriter out = new FileWriter("xml_pattern_" + pattern + ".txt", true);
+//
+//            for (Path path : (Iterable<Path>) () -> paths.filter(Files::isRegularFile).iterator()) {
+//                System.out.println("CHECKING FILE : " + path.getFileName());
+//                Scanner in;
+//                try {
+//
+//                    in = new Scanner(new InputStreamReader(new FileInputStream(path.toFile()), StandardCharsets.UTF_8));
+//                    String previousLine = null;
+//                    while (in.hasNextLine()) {
+//                        String line = in.nextLine();
+//                        if (!line.startsWith("###")) {
+//                            if (line.contains(pattern)) {
+//                                System.out.println("found pattern on "+path.getFileName()+", writing..");
+//                                assert previousLine != null;
+//                                out.write(sanitizeXml(previousLine) + "\n");
+//                                out.write(prettyPrintXML(sanitizeXml(line), "forcedArgs", path.toFile())+"\n");
+//                            }
+//                        }
+//                        previousLine = line;
+//                    }
+//
+//                    in.close();
+//                } catch (FileNotFoundException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//            out.close();
+//        }
+//    }
+
+//    private void processFileInput() throws IOException {
+//
+//        String forwarded = "Forwarded";
+//        String stored = "Stored";
+//        String error = "error";
+//
+//        List<String> dir = new ArrayList<>();
+//        dir.add("osm");
+//
+//        for (String s : dir) {
+//
+//            Stream<Path> paths = Files.walk(Paths.get("src/main/resources/" + s));
+//            FileWriter out = new FileWriter("src/main/resources/error_log_general_" + s + ".txt", true);
+//
+//            for (Path path : (Iterable<Path>) () -> paths.filter(Files::isRegularFile).iterator()) {
+//                Scanner in;
+//                try {
+//
+//                    in = new Scanner(new InputStreamReader(new FileInputStream(path.toFile()), StandardCharsets.UTF_8));
+//
+//                    int forwardOccurrences = 0;
+//                    int storedOccurrences = 0;
+//                    while (in.hasNextLine()) {
+//                        String line = in.nextLine();
+//                        if (!line.startsWith("###")) {
+//                            System.out.println(prettyPrintXML(sanitizeXml(line), s, path.toFile()));
+//                            out.write(prettyPrintXML(sanitizeXml(line), s, path.toFile())+"\n");
+//                            forwardOccurrences++;
+//                        }
+//                    }
+//
+////                    System.out.println(path.getFileName() + "," + forwardOccurrences + "," + storedOccurrences);
+//
+//                    in.close();
+//                } catch (FileNotFoundException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//
+////            System.out.println("MS Log dir "+s+" finished processed");
+//        }
+//    }
 }

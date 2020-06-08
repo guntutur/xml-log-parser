@@ -1,16 +1,16 @@
-# GO-JEK Parking Lot Problem Solution
+# Oracle Communications Order and Service Management Simple Log Parser
 
-assuming statement in the instruction said :
- 
-`The customer should be allocated a parking slot which is nearest to the entry`
+This simple jar lib act as a parser to find an occurrences of presumably ncx-id milestone sent by external party
 
-nearest entry is the lowest number unallocated, and vice versa for the exit
+takes 3 args :
+- path to dir yg isinya file untuk di cari, eg : /etc/
+- string pattern biasanya seh ncx-id, eg : 3-123123123
+- kind of search, anatara MS (log_ms) atau JSM (log_jms), udh tau sendirilah ya maksudnya
 
-program is expecting jdk 8
-you can type `help` to see available command and its usage
-program will also validate command input and outputing what went wrong
-program does not expect tab as command delimiter
-note that expected file input should be put at `resources` dir
+to execute java lib is as simple as
 
-to build and test, execute `./bin/setup` on root dir
-to run the program, execute `./bin/parking_lot` on root dir, please make sure you've already build the program first
+`java -jar logparser-1.0-SNAPSHOT.jar` 
+
+and then follow the on screen instruction
+the execution after effect is a generation of file with name `xml_pattern_<pattern>.txt`
+file will be generated regardless the pattern is found or not
